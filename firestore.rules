@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function team() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['adresse1@gmail.com','adresse2@gmail.com','adresse3@gmail.com'];
+    }
+    // Lecture réservée aux trois. Aucune écriture depuis le navigateur : tout passe par le serveur.
+    match /jobs/{id} {
+      allow read: if team();
+      allow write: if false;
+      match /events/{e} { allow read: if team(); allow write: if false; }
+      match /decisions/{d} { allow read: if team(); allow write: if false; }
+      // jobs/{id}/private : volontairement absent, donc fermé (adresses de reprise de n8n)
+    }
+    match /creators/{c} { allow read: if team(); allow write: if false; }
+  }
+}
