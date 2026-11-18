@@ -256,3 +256,5 @@ input[type=range]{width:100%;accent-color:var(--ac)}
   .main{padding:14px 14px 60px}
   .top{flex-wrap:wrap}.top .search{max-width:none;flex:1 1 100%;order:-1}.top .sp{display:none}
 }
+.login.solo{grid-template-columns:1fr;background:radial-gradient(520px 380px at 50% 30%,var(--gl),transparent 70%)}
+.login.solo .panel{padding:34px 28px;background:var(--glass);border:1px solid var(--ln);border-radius:28px;box-shadow:var(--sh);backdrop-filter:blur(12px)}
