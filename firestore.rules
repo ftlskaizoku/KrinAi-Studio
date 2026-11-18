@@ -4,7 +4,7 @@ service cloud.firestore {
     function team() {
       return request.auth != null
         && request.auth.token.email_verified == true
-        && request.auth.token.email in ['adresse1@gmail.com','adresse2@gmail.com','adresse3@gmail.com'];
+        && request.auth.token.email in ['khalifadylla@gmail.com','papeamdou48@gmail.com','zoumxyz@gmail.com'];
     }
     // Lecture réservée aux trois. Aucune écriture depuis le navigateur : tout passe par le serveur.
     match /jobs/{id} {
