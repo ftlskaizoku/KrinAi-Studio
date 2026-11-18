@@ -15,5 +15,8 @@ service cloud.firestore {
       // jobs/{id}/private : volontairement absent, donc fermé (adresses de reprise de n8n)
     }
     match /creators/{c} { allow read: if team(); allow write: if false; }
+    // Catalogue et ventes : lecture réservée aux trois, écriture uniquement par le serveur.
+    match /ebooks/{e} { allow read: if team(); allow write: if false; }
+    match /sales/{s} { allow read: if team(); allow write: if false; }
   }
 }

@@ -20,5 +20,14 @@ Dépôt privé, trois collaborateurs, travail par branches et relecture par un a
 ## Build sans secrets
 Le build Vercel n'a plus besoin des clés : Firebase n'est contacté qu'à la première requête. Les variables restent obligatoires pour que l'app fonctionne une fois en ligne.
 
+## Design et écrans
+Interface sombre (thème clair en un clic) inspirée de la maquette, de Syncylla et du tableau de bord Novamint. Six écrans : Tableau de bord, Nouvelle extraction, Créateurs, Pipeline, Ebooks, Ventes et gains. Tout est en temps réel via Firestore : les trois associés voient la même chose au même moment.
+
+**Voir le design sans Firebase ni n8n** : mettre `NEXT_PUBLIC_DEMO=1` dans `.env.local`, puis `npm run dev`. Les données sont des exemples, rien n'est enregistré, et un faux traitement avance étape par étape avec les 3 validations. Ne jamais activer en production.
+
+Nouvelles routes serveur : `POST /api/creators` (ajouter ou mettre à jour une fiche) et `POST /api/creators/[id]` (enregistrer l'accord : aucun, en discussion, signé, avec qui et quand). Le contrat avec n8n (`lib/contract.ts`) n'a pas changé. Les règles Firestore (`firestore.rules`) sont à recoller : elles ouvrent en lecture les collections `ebooks` et `sales`.
+
 ## Pas encore là
-Écrans Tableau de bord, Créateurs, Ebooks, Ventes et gains de la maquette ; dépôt des vidéos par le créateur ; Whop. Le code n'a pas encore été installé ni lancé avec `npm install` : seul le faux n8n a été testé.
+- Les collections `ebooks` et `sales` ne sont alimentées par rien : le contrat n8n ne transporte pas encore le brouillon d'ebook ni les ventes Whop. Les écrans Ebooks et Ventes affichent un message vide en attendant (à ajouter avec Zoum).
+- Frais Whop (5,7 % + 0,30 $) et part KrinAi (30 %) : valeurs de la maquette, à confirmer (`lib/money.ts`).
+- Dépôt des vidéos par le créateur (voie « fichiers »).
