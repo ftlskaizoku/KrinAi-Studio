@@ -69,12 +69,14 @@ export function Shell() {
         </div>
         {demo && <div className="demo-banner"><Icon n="warn" size={18} /><span><b>Mode démo.</b> Tous les noms et chiffres sont des exemples ; rien n'est enregistré. Retirez NEXT_PUBLIC_DEMO pour utiliser les vraies données.</span></div>}
         {error && <div className="demo-banner" style={{ borderColor: "var(--bad)" }}><Icon n="warn" size={18} /><span>{error}</span></div>}
+        <div key={view} className="view">
         {view === "dash" && <Dashboard go={go} notify={notify} name={name} />}
         {view === "run" && <Run go={go} notify={notify} />}
         {view === "creators" && <Creators q={q} notify={notify} />}
         {view === "pipeline" && <Pipeline q={q} notify={notify} />}
         {view === "ebooks" && <Ebooks q={q} />}
         {view === "sales" && <Sales />}
+        </div>
       </main>
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

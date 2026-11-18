@@ -14,9 +14,9 @@ export function initials(s: string): string {
   const t = s.replace(/[^\p{L}\p{N} ._-]/gu, "").split(/[ ._-]+/).filter(Boolean);
   return ((t[0]?.[0] ?? "?") + (t[1]?.[0] ?? t[0]?.[1] ?? "")).toUpperCase();
 }
-const G = ["#6A5BFF,#12C2A3", "#F5576C,#F5A524", "#3B82F6,#8E82FF", "#12C2A3,#3B82F6", "#F5A524,#E5484D"];
+const G = ["#2E3A6B,#161C33", "#1F4B4A,#10201F", "#4A3A6B,#1D1630", "#5B3B3B,#231616", "#3E4A2E,#171D10", "#2B4A66,#111C28"];
 export const gradientFor = (s: string) => {
   let h = 0; for (const c of s) h += c.charCodeAt(0);
-  return `linear-gradient(135deg,${G[h % G.length]})`;
+  return `linear-gradient(145deg,${G[h % G.length]})`;
 };
 export const greeting = () => { const h = new Date().getHours(); return h < 5 ? "Bonne nuit" : h < 18 ? "Bonjour" : "Bonsoir"; };

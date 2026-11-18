@@ -44,7 +44,6 @@ export function Dashboard({ go, notify, name }: { go: (v: View) => void; notify:
     setBusy(false);
     if (r.ok) { setUrl(""); notify("Extraction lancée : n8n démarre"); go("run"); } else setMsg(r.error ?? "Échec");
   }
-  const spk = (a: number[]) => (a.some((x) => x > 0) ? a : [1, 1, 1, 1, 1, 1]);
 
   return (
     <>
@@ -63,22 +62,19 @@ export function Dashboard({ go, notify, name }: { go: (v: View) => void; notify:
           </div>
           {msg && <p className="msg err">{msg}</p>}
         </Card>
-        <Card className="hero" style={{ background: "linear-gradient(135deg,#0f1b3d 0%,#1d3b8a 50%,#2a7de1 100%)" }}>
+        <Card className="rev">
           <span className="lbl">Revenu KrinAi · ce mois</span>
-          <div className="amount" style={{ margin: "10px 0 4px" }}>{usd(thisMonth)}</div>
-          <div className="row">
-            <span className="tag">{prev > 0 ? `${thisMonth >= prev ? "+" : ""}${Math.round(((thisMonth - prev) / prev) * 100)} % vs mois dernier` : "premier mois"}</span>
-            <span className="tag">≈ {new Intl.NumberFormat("fr-FR").format(Math.round(thisMonth * FCFA_PER_USD))} FCFA</span>
-          </div>
-          <div className="minibars" aria-hidden="true">{spk(w).map((v, i) => <i key={i} style={{ height: 8 + (v / Math.max(...spk(w))) * 50 }} />)}</div>
+          <div className="amount">{usd(thisMonth)}</div>
+          <span className={`delta ${prev > 0 ? (thisMonth >= prev ? "up" : "down") : ""}`}>{prev > 0 ? `${thisMonth >= prev ? "+" : ""}${Math.round(((thisMonth - prev) / prev) * 100)} % vs mois dernier` : "Premier mois"} · ≈ {new Intl.NumberFormat("fr-FR").format(Math.round(thisMonth * FCFA_PER_USD))} FCFA</span>
+          {m.some((x) => x.value > 0) && <div style={{ marginTop: 14 }}><Spark data={m.map((x) => x.value)} w={300} h={56} /></div>}
         </Card>
       </div>
 
       <div className="grid g4">
-        <Kpi icon="cre" title="Créateurs partenaires" value={signed} delta={`${creators.length} repérés`} color="var(--ac)"><Spark data={spk([1, 2, 2, 3, 4, signed || 1])} /></Kpi>
-        <Kpi icon="bk" title="Ebooks en production" value={active.length} delta={waiting.length ? `${waiting.length} à valider` : "rien à valider"} color="var(--wa)"><Spark data={spk([1, 2, 2, 3, 3, active.length || 1])} /></Kpi>
-        <Kpi icon="cart" title="Ventes du mois" value={salesMonth} delta={`${sales.length} au total`} color="var(--ac2)"><Spark data={spk(w)} /></Kpi>
-        <Kpi icon="cash" title="Ebooks publiés" value={ebooks.filter((e) => e.status === "vente").length} delta={`${ebooks.length} au catalogue`} color="#3B82F6"><Spark data={spk(m.map((x) => x.value))} /></Kpi>
+        <Kpi icon="cre" title="Créateurs partenaires" value={signed} delta={`${creators.length} repérés`} />
+        <Kpi icon="bk" title="Ebooks en production" value={active.length} delta={waiting.length ? `${waiting.length} à valider` : "Rien à valider"} tone={waiting.length ? undefined : undefined} />
+        <Kpi icon="cart" title="Ventes du mois" value={salesMonth} delta={`${sales.length} au total`}>{sales.length > 0 && <Spark data={w} />}</Kpi>
+        <Kpi icon="cash" title="Ebooks publiés" value={ebooks.filter((e) => e.status === "vente").length} delta={`${ebooks.length} au catalogue`} />
       </div>
 
       <div className="grid gmain">
