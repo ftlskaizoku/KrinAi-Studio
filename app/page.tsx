@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, User } from "firebase/auth";
 import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
-import { auth, firestore } from "@/lib/firebaseClient";
+import { getAuthClient, getDb } from "@/lib/firebaseClient";
 
 type Job = { id: string; handle: string; step: string; status: string; message: string; gate?: string | null; progress?: { done: number; total: number } | null };
 const STATUS: Record<string, string> = { queued: "En file", running: "En cours", done: "Terminé", error: "Erreur", waiting_human: "Votre validation est attendue" };
@@ -13,11 +13,11 @@ export default function Home() {
   const [url, setUrl] = useState("");
   const [msg, setMsg] = useState("");
 
-  useEffect(() => onAuthStateChanged(auth, setUser), []);
+  useEffect(() => onAuthStateChanged(getAuthClient(), setUser), []);
   useEffect(() => {
     if (!user) return;
     return onSnapshot(
-      query(collection(firestore, "jobs"), orderBy("created_at", "desc"), limit(20)),
+      query(collection(getDb(), "jobs"), orderBy("created_at", "desc"), limit(20)),
       (s) => setJobs(s.docs.map((d) => ({ id: d.id, ...d.data() }) as Job)),
       (e) => setMsg("Accès refusé : " + e.message),
     );
@@ -31,11 +31,11 @@ export default function Home() {
   }
 
   if (!user) return <main><h1>KrinAi Studio</h1><p className="mu">Réservé aux trois associés.</p>
-    <button onClick={() => signInWithPopup(auth, new GoogleAuthProvider())}>Connexion avec Google</button></main>;
+    <button onClick={() => signInWithPopup(getAuthClient(), new GoogleAuthProvider())}>Connexion avec Google</button></main>;
 
   return <main>
     <h1>KrinAi Studio</h1>
-    <p className="mu">{user.email} · <a href="#" onClick={(e) => { e.preventDefault(); signOut(auth); }}>Déconnexion</a></p>
+    <p className="mu">{user.email} · <a href="#" onClick={(e) => { e.preventDefault(); signOut(getAuthClient()); }}>Déconnexion</a></p>
     <div className="card">
       <b>Nouvelle extraction</b>
       <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://instagram.com/nom-du-createur" aria-label="Lien du compte" />

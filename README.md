@@ -17,5 +17,8 @@ Dans `.env.local` (et sur Vercel), mettre l'adresse du webhook de Zoum dans `N8N
 ## GitHub et Vercel
 Dépôt privé, trois collaborateurs, travail par branches et relecture par un autre associé. Ne jamais committer `.env.local` ni une clé de service. Sur Vercel : importer le dépôt, recopier les variables du `.env.example` dans les réglages du projet. Vercel ne sert qu'à héberger : l'état vit dans Firebase.
 
+## Build sans secrets
+Le build Vercel n'a plus besoin des clés : Firebase n'est contacté qu'à la première requête. Les variables restent obligatoires pour que l'app fonctionne une fois en ligne.
+
 ## Pas encore là
 Écrans Tableau de bord, Créateurs, Ebooks, Ventes et gains de la maquette ; dépôt des vidéos par le créateur ; Whop. Le code n'a pas encore été installé ni lancé avec `npm install` : seul le faux n8n a été testé.
