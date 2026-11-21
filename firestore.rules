@@ -1,22 +1,16 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Associé = droit "team" posé par le serveur après vérification de la liste ALLOWED_EMAILS.
     function team() {
-      return request.auth != null
-        && request.auth.token.email_verified == true
-        && request.auth.token.email in ['khalifadylla@gmail.com','papeamdou48@gmail.com','zoumxyz@gmail.com'];
+      return request.auth != null && request.auth.token.team == true && request.auth.token.email_verified == true;
     }
-    // Lecture réservée aux trois. Aucune écriture depuis le navigateur : tout passe par le serveur.
-    match /jobs/{id} {
+    // Les adresses de reprise des portes ne sont jamais lisibles depuis un navigateur.
+    match /jobs/{id}/private/{doc} { allow read, write: if false; }
+    // Lecture réservée aux associés. Les écritures passent par les routes du serveur (qui ignorent ces règles).
+    match /{document=**} {
       allow read: if team();
       allow write: if false;
-      match /events/{e} { allow read: if team(); allow write: if false; }
-      match /decisions/{d} { allow read: if team(); allow write: if false; }
-      // jobs/{id}/private : volontairement absent, donc fermé (adresses de reprise de n8n)
     }
-    match /creators/{c} { allow read: if team(); allow write: if false; }
-    // Catalogue et ventes : lecture réservée aux trois, écriture uniquement par le serveur.
-    match /ebooks/{e} { allow read: if team(); allow write: if false; }
-    match /sales/{s} { allow read: if team(); allow write: if false; }
   }
 }
