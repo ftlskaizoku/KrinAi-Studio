@@ -24,9 +24,13 @@ export async function POST(req: Request) {
     throw err;
   }
 
+  // Derniers livrables par type (plan, draft, pdf...), pour les relire et tracer ce qui a été validé.
+  const artifactFields: Record<string, string> = {};
+  for (const a of e.artifacts) artifactFields[`artifacts.${a.type.replace(/[^A-Za-z0-9_]/g, "_")}`] = (a.url ?? a.path)!;
+
   await job.update({
     step: e.step, status: e.status, progress: e.progress ?? null, message: e.message ?? "",
-    gate: e.waiting_for?.gate ?? null, updated_at: FieldValue.serverTimestamp(),
+    gate: e.waiting_for?.gate ?? null, updated_at: FieldValue.serverTimestamp(), ...artifactFields,
   });
   // L'adresse de reprise reste côté serveur (jamais lisible depuis le navigateur).
   if (e.waiting_for) await job.collection("private").doc("gate").set(e.waiting_for);
