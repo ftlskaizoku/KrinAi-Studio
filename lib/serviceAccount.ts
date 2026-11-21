@@ -2,6 +2,7 @@
 //  - JSON normal (une ou plusieurs lignes), avec des \n ou de vrais retours à la ligne dans la clé privée
 //  - JSON entouré de guillemets ("..." ou '...'), parfois avec les guillemets internes échappés
 //  - JSON encodé en base64
+//  - JSON auquel il manque l'accolade { de début et/ou } de fin (oubli fréquent au copier-coller)
 // Ne renvoie jamais le contenu de la clé dans un message d'erreur.
 export type ServiceAccount = { project_id: string; client_email: string; private_key: string; [k: string]: unknown };
 
@@ -16,6 +17,8 @@ export function parseServiceAccount(input: string | undefined): ServiceAccount {
     const d = Buffer.from(s, "base64").toString("utf8").trim();
     if (d.startsWith("{")) s = d;
   }
+  // accolades oubliées au copier-coller : le texte commence par "type": ... au lieu de { "type": ...
+  if (/^"[A-Za-z_]+"\s*:/.test(s)) s = "{" + s.replace(/,\s*$/, "") + (s.trimEnd().endsWith("}") ? "" : "}");
   // guillemets autour (jusqu'à deux couches)
   for (let i = 0; i < 2; i++) {
     const q = s[0];
@@ -30,6 +33,7 @@ export function parseServiceAccount(input: string | undefined): ServiceAccount {
     // vrais retours à la ligne à l'intérieur de la clé privée : on les remplace par \n
     const fixed = s.replace(/("private_key"\s*:\s*")([\s\S]*?)("\s*[,}])/, (_m, a, b, c) => a + b.replace(/\r?\n/g, "\\n") + c);
     sa = parse(fixed);
+    if (!sa && s.startsWith("{") && !s.trimEnd().endsWith("}")) sa = parse(fixed.trimEnd().replace(/,$/, "") + "}"); // « } » de fin oublié
   }
   if (!sa || typeof sa !== "object") {
     throw new Error(`FIREBASE_SERVICE_ACCOUNT illisible (commence par « ${s.slice(0, 1) || "?"} », ${s.length} caractères). Collez le contenu complet du fichier JSON téléchargé depuis Firebase.`);

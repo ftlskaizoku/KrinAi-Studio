@@ -1,4 +1,4 @@
-# Correctif v3.3 : lecture robuste de FIREBASE_SERVICE_ACCOUNT
+# Correctif v3.4 : lecture robuste de FIREBASE_SERVICE_ACCOUNT (accolades oubliées comprises)
 
 Remplacez/ajoutez ces fichiers (mêmes chemins), puis : git add -A, git commit, git push (Vercel redéploie tout seul).
 
