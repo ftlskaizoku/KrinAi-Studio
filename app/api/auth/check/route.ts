@@ -1,16 +1,17 @@
 import { adminAuth } from "@/lib/firebaseAdmin"; // même instance Admin que les autres routes (initialisée au premier usage)
 import { allowedEmails, isAllowed } from "@/lib/team";
+import { parseServiceAccount } from "@/lib/serviceAccount";
 
 // Diagnostic sans secret : ouvrez /api/auth/check dans le navigateur pour voir ce qui manque sur Vercel.
 export async function GET() {
-  const raw = process.env.FIREBASE_SERVICE_ACCOUNT ?? "";
   let sa: any = null;
-  let json = "absente";
-  if (raw) { try { sa = JSON.parse(raw); json = "JSON valide"; } catch { json = "JSON illisible (doit tenir sur une seule ligne)"; } }
+  let etat = "absente";
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    try { sa = parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT); etat = "valide"; } catch (e: any) { etat = String(e?.message ?? "illisible"); }
+  }
   const pub = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
   return Response.json({
-    FIREBASE_SERVICE_ACCOUNT: json,
-    cle_privee: sa ? (typeof sa.private_key === "string" && /BEGIN PRIVATE KEY/.test(sa.private_key.replace(/\\n/g, "\n")) ? "ok" : "absente ou mal formée") : "-",
+    FIREBASE_SERVICE_ACCOUNT: etat,
     ALLOWED_EMAILS: allowedEmails().length + " adresse(s) actives",
     NEXT_PUBLIC_FIREBASE_PROJECT_ID: pub ? "présente" : "absente",
     meme_projet_firebase: sa?.project_id && pub ? sa.project_id === pub : null,
