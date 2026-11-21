@@ -12,7 +12,7 @@ export const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
 
 export type Access = "none" | "checking" | "ok" | "denied" | "error";
 type Ctx = {
-  ready: boolean; email: string | null; demo: boolean; error: string; access: Access; deniedEmail: string;
+  ready: boolean; email: string | null; demo: boolean; error: string; access: Access; deniedEmail: string; detail: string;
   jobs: Job[]; creators: Creator[]; ebooks: Ebook[]; sales: Sale[];
   login: () => void; logout: () => void;
   call: (path: string, body: object) => Promise<{ ok: boolean; error?: string; data?: any }>;
@@ -32,6 +32,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // Accès : rien n'est affiché ni demandé à Firestore tant que le serveur n'a pas confirmé que l'adresse est celle d'un associé.
   const [access, setAccess] = useState<Access>(DEMO ? "ok" : "none");
   const [deniedEmail, setDeniedEmail] = useState("");
+  const [detail, setDetail] = useState("");
   const [ready, setReady] = useState(DEMO);
   const [error, setError] = useState("");
   const [jobs, setJobs] = useState<Job[]>(DEMO ? demoJobs() : []);
@@ -44,15 +45,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return onAuthStateChanged(getAuthClient(), async (u) => {
       setUser(u);
       if (!u) { setAccess((a) => (a === "denied" ? a : "none")); setReady(true); return; }
-      setAccess("checking"); setError("");
+      setAccess("checking"); setError(""); setDetail("");
       try {
         const r = await fetch("/api/auth/check", { method: "POST", headers: { authorization: `Bearer ${await u.getIdToken()}` } });
         if (r.status === 403) { setDeniedEmail(u.email ?? ""); setAccess("denied"); setUser(null); await signOut(getAuthClient()); return; }
-        if (!r.ok) { setAccess("error"); return; }
+        if (r.status === 401) {
+          // Jeton refusé : on déconnecte pour revenir à l'écran de connexion, jamais coincé.
+          const e = await r.json().catch(() => ({}));
+          setError(`Connexion refusée par le serveur (${e.error ?? "jeton"}). Reconnectez-vous.`); setAccess("none"); setUser(null); await signOut(getAuthClient()); return;
+        }
+        if (!r.ok) { const e = await r.json().catch(() => ({})); setDetail(`Code ${r.status}${e.error ? " : " + e.error : ""}`); setAccess("error"); return; }
         const j = await r.json();
         if (j.refresh) await u.getIdToken(true); // récupère le droit "team" lu par les règles Firestore
         setAccess("ok");
-      } catch { setAccess("error"); } finally { setReady(true); }
+      } catch (e: any) { setDetail("Réseau : " + (e?.message ?? "inconnu")); setAccess("error"); } finally { setReady(true); }
     });
   }, []);
 
@@ -133,15 +139,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [user, access, creators, jobs, advance, patchJob]);
 
   const value = useMemo<Ctx>(() => ({
-    ready, demo: DEMO, error, access, deniedEmail, email: DEMO ? "demo@krinai.app" : access === "ok" ? user?.email ?? null : null,
+    ready, demo: DEMO, error, access, deniedEmail, detail, email: DEMO ? "demo@krinai.app" : access === "ok" ? user?.email ?? null : null,
     jobs, creators, ebooks, sales, call,
     login: () => {
       setAccess("none"); setDeniedEmail(""); setError("");
       const p = new GoogleAuthProvider(); p.setCustomParameters({ prompt: "select_account" }); // laisse choisir un autre compte après un refus
       signInWithPopup(getAuthClient(), p).catch((e) => setError(e.message));
     },
-    logout: () => { if (!DEMO) signOut(getAuthClient()); },
-  }), [ready, error, access, deniedEmail, user, jobs, creators, ebooks, sales, call]);
+    logout: () => { if (!DEMO) { signOut(getAuthClient()); setAccess("none"); setDetail(""); setDeniedEmail(""); } },
+  }), [ready, error, access, deniedEmail, detail, user, jobs, creators, ebooks, sales, call]);
 
   return <C.Provider value={value}>{children}</C.Provider>;
 }

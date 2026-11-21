@@ -9,7 +9,10 @@ function app(): App {
   if (!_app) {
     const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (!raw) throw new Error("Variable FIREBASE_SERVICE_ACCOUNT manquante");
-    _app = getApps()[0] ?? initializeApp({ credential: cert(JSON.parse(raw)) });
+    let sa: any;
+    try { sa = JSON.parse(raw); } catch { throw new Error("FIREBASE_SERVICE_ACCOUNT : JSON illisible (il doit tenir sur une seule ligne)"); }
+    if (typeof sa.private_key === "string") sa.private_key = sa.private_key.replace(/\\n/g, "\n"); // clé collée avec des \n littéraux
+    _app = getApps()[0] ?? initializeApp({ credential: cert(sa) });
   }
   return _app;
 }
