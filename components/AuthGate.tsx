@@ -2,6 +2,7 @@
 // Enveloppe toute l'application. Tant que l'accès n'est pas confirmé par le serveur,
 // RIEN de l'interface n'est affichée et aucune donnée n'est demandée.
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { getApps } from "firebase/app";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 
 type State = "checking" | "open" | "ok" | "denied" | "error";
@@ -15,6 +16,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
   const denied = useRef(false);
 
   useEffect(() => {
+    if (getApps().length === 0) { setState("error"); return; } // Firebase non initialisé : on refuse par défaut
     const auth = getAuth();
     let alive = true;
     const off = onAuthStateChanged(auth, async (user) => {
