@@ -10,8 +10,9 @@ import type { Creator, Ebook, Job, Sale, Step } from "./types";
 
 export const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
 
+export type Access = "none" | "checking" | "ok" | "denied" | "error";
 type Ctx = {
-  ready: boolean; email: string | null; demo: boolean; error: string;
+  ready: boolean; email: string | null; demo: boolean; error: string; access: Access; deniedEmail: string;
   jobs: Job[]; creators: Creator[]; ebooks: Ebook[]; sales: Sale[];
   login: () => void; logout: () => void;
   call: (path: string, body: object) => Promise<{ ok: boolean; error?: string; data?: any }>;
@@ -28,6 +29,9 @@ const mapOther = <T,>(id: string, d: DocumentData): T => ({ ...d, id, created_at
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  // Accès : rien n'est affiché ni demandé à Firestore tant que le serveur n'a pas confirmé que l'adresse est celle d'un associé.
+  const [access, setAccess] = useState<Access>(DEMO ? "ok" : "none");
+  const [deniedEmail, setDeniedEmail] = useState("");
   const [ready, setReady] = useState(DEMO);
   const [error, setError] = useState("");
   const [jobs, setJobs] = useState<Job[]>(DEMO ? demoJobs() : []);
@@ -37,11 +41,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (DEMO) return;
-    return onAuthStateChanged(getAuthClient(), (u) => { setUser(u); setReady(true); });
+    return onAuthStateChanged(getAuthClient(), async (u) => {
+      setUser(u);
+      if (!u) { setAccess((a) => (a === "denied" ? a : "none")); setReady(true); return; }
+      setAccess("checking"); setError("");
+      try {
+        const r = await fetch("/api/auth/check", { method: "POST", headers: { authorization: `Bearer ${await u.getIdToken()}` } });
+        if (r.status === 403) { setDeniedEmail(u.email ?? ""); setAccess("denied"); setUser(null); await signOut(getAuthClient()); return; }
+        if (!r.ok) { setAccess("error"); return; }
+        const j = await r.json();
+        if (j.refresh) await u.getIdToken(true); // récupère le droit "team" lu par les règles Firestore
+        setAccess("ok");
+      } catch { setAccess("error"); } finally { setReady(true); }
+    });
   }, []);
 
   useEffect(() => {
-    if (DEMO || !user) return;
+    if (DEMO || !user || access !== "ok") return;
     const db = getDb();
     const fail = (e: Error) => setError("Accès refusé : " + e.message);
     const subs = [
@@ -51,7 +67,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       onSnapshot(query(collection(db, "sales"), orderBy("at", "desc"), limit(500)), (s) => setSales(s.docs.map((d) => mapOther<Sale>(d.id, d.data()))), () => {}),
     ];
     return () => subs.forEach((u) => u());
-  }, [user]);
+  }, [user, access]);
 
   // --- Simulateur du mode démo : fait avancer un faux job étape par étape, avec les 3 pauses humaines ---
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -109,19 +125,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (m) { setCreators((cs) => cs.map((x) => (x.id === m![1] ? { ...x, ...(body as object) } : x))); return { ok: true }; }
       return { ok: false, error: "Non disponible en démo" };
     }
-    if (!user) return { ok: false, error: "Non connecté" };
+    if (!user || access !== "ok") return { ok: false, error: "Non connecté" };
     const token = await user.getIdToken();
     const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));
     return r.ok ? { ok: true, data: j } : { ok: false, error: j.error ?? `Erreur ${r.status}` };
-  }, [user, creators, jobs, advance, patchJob]);
+  }, [user, access, creators, jobs, advance, patchJob]);
 
   const value = useMemo<Ctx>(() => ({
-    ready, demo: DEMO, error, email: DEMO ? "demo@krinai.app" : user?.email ?? null,
+    ready, demo: DEMO, error, access, deniedEmail, email: DEMO ? "demo@krinai.app" : access === "ok" ? user?.email ?? null : null,
     jobs, creators, ebooks, sales, call,
-    login: () => { signInWithPopup(getAuthClient(), new GoogleAuthProvider()).catch((e) => setError(e.message)); },
+    login: () => {
+      setAccess("none"); setDeniedEmail(""); setError("");
+      const p = new GoogleAuthProvider(); p.setCustomParameters({ prompt: "select_account" }); // laisse choisir un autre compte après un refus
+      signInWithPopup(getAuthClient(), p).catch((e) => setError(e.message));
+    },
     logout: () => { if (!DEMO) signOut(getAuthClient()); },
-  }), [ready, error, user, jobs, creators, ebooks, sales, call]);
+  }), [ready, error, access, deniedEmail, user, jobs, creators, ebooks, sales, call]);
 
   return <C.Provider value={value}>{children}</C.Provider>;
 }
